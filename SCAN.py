@@ -12,36 +12,47 @@ G = nx.Graph()
 node_list = []
 edge_list = []
 
-for node in zip(node_df["NodeID"], node_df["cluster"]):
-    node_list.append(node[0])
-    G.add_node(node[0])
-    G.nodes[node[0]]["cluster"] = node[1]
+for node, cluster in zip(node_df["NodeID"], node_df["cluster"]):
+    node_list.append(node)
+    G.add_node(node)
+    G.nodes[node]["cluster"] = cluster
 
-for edge in zip(edge_df["Source"], edge_df["Target"]):
-    edge_list.append(edge)
-    G.add_edge(edge[0],edge[1])
+for node_1, node_2 in zip(edge_df["Source"], edge_df["Target"]):
+    edge_list.append((node_1, node_2))
+    G.add_edge(node_1, node_2)
 
+neighbors = {
+    v: set(G.neighbors(v)) | {v}
+    for v in G.nodes
+}
 
-def neighborhood(node):
-    subgraph_nodes = nx.single_source_shortest_path_length(G, node, cutoff=1).keys()
-    return subgraph_nodes
+EPS = 0.7
+MU = 5
+
+e_neighbors = {}
+
+# BFS ダメ（最短経路等）
+# def neighborhood(node):
+#     subgraph_nodes = nx.single_source_shortest_path_length(G, node, cutoff=1).keys()
+#     return subgraph_nodes
 
 def sigma(node_1, node_2):
-    intersection_set = len(set(neighborhood(node_1)) & set(neighborhood(node_2)))
-    normalize = np.sqrt(len(set(neighborhood(node_1)))*len(set(neighborhood(node_2)))) 
-    return intersection_set / normalize
+    inter = len(neighbors[node_1] & neighbors[node_2])
+    return inter / np.sqrt(len(neighbors[node_1]) * len(neighbors[node_2]))
 
 def e_neighborhood(node_1):
-    e_subgraph_nodes = []
-    for node_2 in neighborhood(node_1):
-        # ハイパーパラメータε
-        if sigma(node_1, node_2) >= 0.7:
-            e_subgraph_nodes.append(node_2)
-    return e_subgraph_nodes 
+    if node_1 in e_neighbors:
+        return e_neighbors[node_1]
+
+    eps_n = [
+        node_2 for node_2 in neighbors[node_1]
+        if sigma(node_1, node_2) >= EPS
+    ]
+    e_neighbors[node_1] = eps_n
+    return eps_n
         
 def core(node):
-    # ハイパーパラメータμ
-    if len(e_neighborhood(node)) >= 5:
+    if len(e_neighborhood(node)) >= MU:
         return True
     else:
         return False
@@ -52,21 +63,21 @@ def dir_reach(node_1, node_2):
     else:
         return False
     
-def reach(node_1, node_2):
-    try:
-        path = nx.shortest_path(G, node_1, node_2)
-        return True
+# def reach(node_1, node_2):
+#     try:
+#         path = nx.shortest_path(G, node_1, node_2)
+#         return True
     
-    except nx.NetworkXNoPath:
-        return False
+#     except nx.NetworkXNoPath:
+#         return False
 
-def connect(node_1, node_2):
-    difference_set = set(node_list)-set([node_1, node_2])
-    node_3 = np.random.choice(list(difference_set))
-    if reach(node_3, node_1) and reach(node_3, node_2):
-        return True
-    else:
-        return False
+# def connect(node_1, node_2):
+#     difference_set = set(node_list)-set([node_1, node_2])
+#     node_3 = np.random.choice(list(difference_set))
+#     if reach(node_3, node_1) and reach(node_3, node_2):
+#         return True
+#     else:
+#         return False
 
 
 # ================================================================================

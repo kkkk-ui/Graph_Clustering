@@ -46,7 +46,7 @@ while True:
     else:
         break
 
-    subgraph_nodes = nx.single_source_shortest_path_length(G, node, cutoff=1).keys()
+    subgraph_nodes = set(G.neighbors(node)) | {node}
     subgraph = G.subgraph(subgraph_nodes)
     if clusterID == 0:
         clusterID += 1
@@ -55,10 +55,10 @@ while True:
     else:
         coh_max = 0
         for j in nodeID_dict:
-            representative_nodes = nx.single_source_shortest_path_length(G, j, cutoff=1).keys()
+            representative_nodes = set(G.neighbors(j)) | {node}
             representative = G.subgraph(representative_nodes)
 
-            coh = gkf.GraphkernelFunc.k_func_wl(nx_to_grakel_graph(subgraph), nx_to_grakel_graph(representative), 2)
+            coh = gkf.GraphkernelFunc.k_func_wl(nx_to_grakel_graph(subgraph), nx_to_grakel_graph(representative),  1)
             if(coh > coh_max):
                 coh_max = coh
                 w = j
@@ -71,10 +71,10 @@ while True:
 
         for neighborhood in subgraph_nodes:
             
-            neighbor_subgraph_nodes = nx.single_source_shortest_path_length(G, neighborhood, cutoff=1).keys()
+            neighbor_subgraph_nodes = set(G.neighbors(neighborhood)) | {node}
             neighbor_subgraph = G.subgraph(neighbor_subgraph_nodes)
 
-            coh = gkf.GraphkernelFunc.k_func_wl(nx_to_grakel_graph(neighbor_subgraph), nx_to_grakel_graph(subgraph), 2)
+            coh = gkf.GraphkernelFunc.k_func_wl(nx_to_grakel_graph(neighbor_subgraph), nx_to_grakel_graph(subgraph), 1)
                 
             if(coh >= sigma):
                 G.nodes[neighborhood]["cluster"] = G.nodes[node]["cluster"]
