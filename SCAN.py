@@ -90,6 +90,7 @@ for node in node_list:
     print(f"node:{node}")
     if core(node):
         clusterID += 1
+        G.nodes[node]["cluster"] = clusterID
         Q = e_neighborhood(node)
 
         while len(Q) != 0:
