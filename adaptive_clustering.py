@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.colors as mcolors
 import GraphKernelFunc as gkf
 from grakel import Graph
+import time
 
 def nx_to_grakel_graph(subgraph):
     sublabel = {n: str(lbl) for n, lbl in subgraph.nodes(data="label")}
@@ -33,6 +34,7 @@ for edge in zip(edge_df["Source"], edge_df["Target"]):
 
 # ================================================================================
 # Adaptive clustering プログラム
+start = time.time()
 nodeID_dict = []
 clusterID = 0
 sigma = 0.8
@@ -55,7 +57,7 @@ while True:
     else:
         coh_max = 0
         for j in nodeID_dict:
-            representative_nodes = set(G.neighbors(j)) | {node}
+            representative_nodes = set(G.neighbors(j)) | {j}
             representative = nx_to_grakel_graph(G.subgraph(representative_nodes))
 
             coh = gkf.GraphkernelFunc.k_func_wl(subgraph, representative,  1)
@@ -71,14 +73,16 @@ while True:
 
         for neighborhood in subgraph_nodes:
             
-            neighbor_subgraph_nodes = set(G.neighbors(neighborhood)) | {node}
+            neighbor_subgraph_nodes = set(G.neighbors(neighborhood)) | {neighborhood}
             neighbor_subgraph = nx_to_grakel_graph(G.subgraph(neighbor_subgraph_nodes))
 
             coh = gkf.GraphkernelFunc.k_func_wl(neighbor_subgraph, subgraph, 1)
                 
             if(coh >= sigma):
                 G.nodes[neighborhood]["cluster"] = G.nodes[node]["cluster"]
-                        
+end = time.time()
+print(end - start)
+print(len(nodeID_dict))
 # ================================================================================
 print(len(G.edges))
 all_labels = [attr.get("cluster") for _, attr in G.nodes.data() if "cluster" in attr]

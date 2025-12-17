@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd 
 import matplotlib.colors as mcolors
+import time
 
 node_df = pd.read_csv("Nodes.csv")
 edge_df = pd.read_csv("Edges.csv")
@@ -26,7 +27,7 @@ neighbors = {
     for v in G.nodes
 }
 
-EPS = 0.7
+EPS = 0.8
 MU = 5
 
 e_neighbors = {}
@@ -57,11 +58,11 @@ def core(node):
     else:
         return False
     
-def dir_reach(node_1, node_2):
-    if core(node_1) and (node_2 in e_neighborhood(node_1)):
-        return True
-    else:
-        return False
+# def dir_reach(node_1, node_2):
+#     if core(node_1) and (node_2 in e_neighborhood(node_1)):
+#         return True
+#     else:
+#         return False
     
 # def reach(node_1, node_2):
 #     try:
@@ -82,6 +83,7 @@ def dir_reach(node_1, node_2):
 
 # ================================================================================
 # SCAN プログラム
+start = time.time()
 clusterID = 0
 for node in node_list:
     if G.nodes[node]["cluster"] != "unclassified":
@@ -97,9 +99,13 @@ for node in node_list:
             node_1 = Q[0]
             R = []
             
-            for node_2 in node_list:
-                if dir_reach(node_1, node_2):
-                    R.append(node_2)
+            # for node_2 in node_list:
+            #     if dir_reach(node_1, node_2):
+            #         R.append(node_2)
+
+            if core(node_1):
+                for node_2 in e_neighborhood(node_1):
+                    R.append(node_2)    
 
             for node_2 in R:
                 old_label = G.nodes[node_2]["cluster"]
@@ -132,7 +138,8 @@ for node in non_member_nodes:
         G.nodes[node]["cluster"] = "hub"
     else:
         G.nodes[node]["cluster"] = "outlier"
-
+end = time.time()
+print(end - start)
 # ================================================================================
 print(len(G.edges))
 all_labels = [attr.get("cluster") for _, attr in G.nodes.data() if "cluster" in attr]

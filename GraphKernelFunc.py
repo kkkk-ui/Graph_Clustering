@@ -90,6 +90,16 @@ class GraphkernelFunc():
     #-----------------------------------------------------------------------------------------#
     # Weisfeiler-Lehman部分木カーネル graph -> scalar
     @staticmethod
+    def k_func_vh(g1, g2):
+        gk = VertexHistogram()
+        gk.fit([g1])
+        k_val = gk.transform([g2])[0]
+        return k_val
+    #-----------------------------------------------------------------------------------------#
+
+    #-----------------------------------------------------------------------------------------#
+    # Weisfeiler-Lehman部分木カーネル graph -> scalar
+    @staticmethod
     def k_func_wl(g1, g2, i):
         gk = WeisfeilerLehman(n_iter=i, normalize=True)
         gk.fit([g1])
