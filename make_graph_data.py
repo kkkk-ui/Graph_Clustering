@@ -4,17 +4,17 @@ import matplotlib.pyplot as plt
 import pandas as pd 
 
 # グラフのパラメータ設定
-N = 1000 # ノード数
+N = 200 # ノード数
 k = 8   # クラスター数
 
 # クラスターごとのノード数 (合計200になるように分割)
-sizes = [120, 140, 120, 100, 120, 120, 180, 100]
+sizes = [24, 28, 24, 20, 24, 24, 36, 20]
 
 # クラスター間の接続確率行列 P
 # 対角要素 (クラスター内): 0.8 (密)
 # 非対角要素 (クラスター間): 0.01 (疎)
-p_in = 0.2
-p_out = 0.001
+p_in = 0.8
+p_out = 0.01
 probs = [[p_in, p_out, p_out, p_out, p_out, p_out, p_out, p_out],
          [p_out, p_in, p_out, p_out, p_out, p_out, p_out, p_out],
          [p_out, p_out, p_in, p_out, p_out, p_out, p_out, p_out],

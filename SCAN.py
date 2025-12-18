@@ -131,7 +131,7 @@ for node in non_member_nodes:
     neighbor_cluster_ids = set()
     for nb in neighbor_nodes:
         label = G.nodes[nb]["cluster"]
-        if label not in ("unclassified", "non-member"):
+        if label not in ("unclassified", "non-member", "hub", "outlier"):
             neighbor_cluster_ids.add(label)
 
     if len(neighbor_cluster_ids) >= 2:

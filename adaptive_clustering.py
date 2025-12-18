@@ -48,16 +48,22 @@ while True:
     else:
         break
 
-    subgraph_nodes = set(G.neighbors(node)) | {node}
-    subgraph = nx_to_grakel_graph(G.subgraph(subgraph_nodes))
     if clusterID == 0:
         clusterID += 1
         nodeID_dict.append(node)
         G.nodes[node]["cluster"] = clusterID
     else:
+        subgraph_nodes = set(G.neighbors(node)) | {node}
+        if len(subgraph_nodes) == 1:
+            G.nodes[node]["cluster"] = "non-member"
+            continue
+        subgraph = nx_to_grakel_graph(G.subgraph(subgraph_nodes))
+
         coh_max = 0
         for j in nodeID_dict:
             representative_nodes = set(G.neighbors(j)) | {j}
+            if len(representative_nodes) == 1:
+                continue
             representative = nx_to_grakel_graph(G.subgraph(representative_nodes))
 
             coh = gkf.GraphkernelFunc.k_func_wl(subgraph, representative,  1)
@@ -72,8 +78,12 @@ while True:
             G.nodes[node]["cluster"] = G.nodes[w]["cluster"]
 
         for neighborhood in subgraph_nodes:
+            if G.nodes[neighborhood]["cluster"] != "unclassified":
+                continue
             
             neighbor_subgraph_nodes = set(G.neighbors(neighborhood)) | {neighborhood}
+            if len(neighbor_subgraph_nodes) == 1:
+                continue
             neighbor_subgraph = nx_to_grakel_graph(G.subgraph(neighbor_subgraph_nodes))
 
             coh = gkf.GraphkernelFunc.k_func_wl(neighbor_subgraph, subgraph, 1)
@@ -82,7 +92,7 @@ while True:
                 G.nodes[neighborhood]["cluster"] = G.nodes[node]["cluster"]
 end = time.time()
 print(end - start)
-print(len(nodeID_dict))
+
 # ================================================================================
 print(len(G.edges))
 all_labels = [attr.get("cluster") for _, attr in G.nodes.data() if "cluster" in attr]
