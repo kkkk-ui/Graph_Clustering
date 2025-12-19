@@ -6,10 +6,16 @@ import matplotlib.colors as mcolors
 import GraphKernelFunc as gkf
 from grakel import Graph
 import time
+import cProfile
+import pstats
 
-def nx_to_grakel_graph(subgraph):
-    sublabel = {n: str(lbl) for n, lbl in subgraph.nodes(data="label")}
-    edge_list = list(subgraph.edges())
+def nx_to_grakel_graph(neighbors):
+    sublabel = {n: str(G.nodes[n]["label"]) for n in neighbors}
+    edge_list = []
+    for n in neighbors:
+        for v in G.neighbors(n):
+            if v in neighbors and n < v: # 重複（u,v と v,u）を避けるため 
+                edge_list.append((n, v))
 
     return Graph(edge_list, node_labels=sublabel)
 
@@ -34,7 +40,10 @@ for edge in zip(edge_df["Source"], edge_df["Target"]):
 
 # ================================================================================
 # Adaptive clustering プログラム
-start = time.time()
+# プロファイリングの実行
+profiler = cProfile.Profile()
+profiler.enable()
+# start = time.time()
 nodeID_dict = []
 clusterID = 0
 sigma = 0.8
@@ -57,16 +66,17 @@ while True:
         if len(subgraph_nodes) == 1:
             G.nodes[node]["cluster"] = "non-member"
             continue
-        subgraph = nx_to_grakel_graph(G.subgraph(subgraph_nodes))
+        subgraph = nx_to_grakel_graph(subgraph_nodes)
 
         coh_max = 0
         for j in nodeID_dict:
             representative_nodes = set(G.neighbors(j)) | {j}
             if len(representative_nodes) == 1:
                 continue
-            representative = nx_to_grakel_graph(G.subgraph(representative_nodes))
+            representative = nx_to_grakel_graph(representative_nodes)
 
-            coh = gkf.GraphkernelFunc.k_func_wl(subgraph, representative,  1)
+            # coh = gkf.GraphkernelFunc.k_func_wl(subgraph, representative,  1)
+            coh = gkf.GraphkernelFunc.k_func_vh(subgraph, representative)
             if(coh > coh_max):
                 coh_max = coh
                 w = j
@@ -84,15 +94,18 @@ while True:
             neighbor_subgraph_nodes = set(G.neighbors(neighborhood)) | {neighborhood}
             if len(neighbor_subgraph_nodes) == 1:
                 continue
-            neighbor_subgraph = nx_to_grakel_graph(G.subgraph(neighbor_subgraph_nodes))
+            neighbor_subgraph = nx_to_grakel_graph(neighbor_subgraph_nodes)
 
-            coh = gkf.GraphkernelFunc.k_func_wl(neighbor_subgraph, subgraph, 1)
+            # coh = gkf.GraphkernelFunc.k_func_wl(neighbor_subgraph, subgraph, 1)
+            coh = gkf.GraphkernelFunc.k_func_vh(neighbor_subgraph, subgraph)
                 
             if(coh >= sigma):
                 G.nodes[neighborhood]["cluster"] = G.nodes[node]["cluster"]
-end = time.time()
-print(end - start)
-
+# end = time.time()
+# print(end - start)
+profiler.disable()
+stats = pstats.Stats(profiler).sort_stats('cumtime') # 累積時間でソート
+stats.print_stats(20) # 上位20項目を表示
 # ================================================================================
 print(len(G.edges))
 all_labels = [attr.get("cluster") for _, attr in G.nodes.data() if "cluster" in attr]
