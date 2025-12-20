@@ -24,13 +24,11 @@ def new_core_score(v):
     v_neigh = set(G.neighbors(v)) | {v}
     v_neigh_subgraph = nx_to_grakel_graph(v_neigh)
 
-    # classified = [u for u in v_neigh if G.nodes[u]["cluster"] != "unclassified"]
     classified = [u for u in list(new_neighborhood_graphs.keys()) if G.nodes[u]["cluster"] != "unclassified"]
 
     if len(classified) == 0:
         return 0.0
     
-    # gkf.GraphkernelFunc.k_func_wl(nx_to_grakel_graph(set(G.neighbors(u)) | {u}), neigh_subgraph, 1) 
     same = sum(gkf.GraphkernelFunc.k_func_wl(new_neighborhood_graphs[u], v_neigh_subgraph, 1) for u in classified 
                if G.nodes[u]["cluster"] == G.nodes[v]["cluster"])
     return same / len(classified)
@@ -39,13 +37,11 @@ def rep_core_score(v):
     v_neigh = set(G.neighbors(v)) | {v}
     v_neigh_subgraph = nx_to_grakel_graph(v_neigh)
 
-    # classified = [u for u in v_neigh if G.nodes[u]["cluster"] != "unclassified"]
     classified = [u for u in list(set(rep_neighborhood_graphs.keys()) & set(v_neigh)) if G.nodes[u]["cluster"] != "unclassified"]
 
     if len(classified) == 0:
         return 0.0
     
-    # gkf.GraphkernelFunc.k_func_wl(nx_to_grakel_graph(set(G.neighbors(u)) | {u}), neigh_subgraph, 1) 
     same = sum(gkf.GraphkernelFunc.k_func_wl(rep_neighborhood_graphs[u], v_neigh_subgraph, 1) for u in classified 
                if G.nodes[u]["cluster"] == G.nodes[v]["cluster"])
     return same / len(classified)
@@ -101,7 +97,6 @@ while True:
     if unclassified_nodes:
         picked = np.random.choice(unclassified_nodes)
         node = picked
-        # print(f"node:{picked}")
     else:
         break
 
@@ -131,11 +126,6 @@ while True:
         u = None
         best_idx = None
         for idx, j in enumerate(nodeID_dict):
-            # representative_nodes = set(G.neighbors(j)) | {j}
-            # if len(representative_nodes) == 1:
-            #     continue
-            # representative = nx_to_grakel_graph(representative_nodes)
-
             coh = gkf.GraphkernelFunc.k_func_wl(subgraph, representative_graphs[j],  1)
             # coh = gkf.GraphkernelFunc.k_func_vh(subgraph, representative)
             if(coh > coh_max):
