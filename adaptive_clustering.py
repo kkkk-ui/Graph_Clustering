@@ -20,17 +20,33 @@ def nx_to_grakel_graph(neighbors):
 
     return Graph(edge_list, node_labels=sublabel)
 
-def core_score(v):
-    neigh = set(G.neighbors(v)) | {v}
-    # neigh_subgraph = nx_to_grakel_graph(neigh)
+def new_core_score(v):
+    v_neigh = set(G.neighbors(v)) | {v}
+    v_neigh_subgraph = nx_to_grakel_graph(v_neigh)
 
-    classified = [u for u in neigh if G.nodes[u]["cluster"] != "unclassified"]
+    # classified = [u for u in v_neigh if G.nodes[u]["cluster"] != "unclassified"]
+    classified = [u for u in list(new_neighborhood_graphs.keys()) if G.nodes[u]["cluster"] != "unclassified"]
 
     if len(classified) == 0:
         return 0.0
     
     # gkf.GraphkernelFunc.k_func_wl(nx_to_grakel_graph(set(G.neighbors(u)) | {u}), neigh_subgraph, 1) 
-    same = sum(1 for u in classified 
+    same = sum(gkf.GraphkernelFunc.k_func_wl(new_neighborhood_graphs[u], v_neigh_subgraph, 1) for u in classified 
+               if G.nodes[u]["cluster"] == G.nodes[v]["cluster"])
+    return same / len(classified)
+
+def rep_core_score(v):
+    v_neigh = set(G.neighbors(v)) | {v}
+    v_neigh_subgraph = nx_to_grakel_graph(v_neigh)
+
+    # classified = [u for u in v_neigh if G.nodes[u]["cluster"] != "unclassified"]
+    classified = [u for u in list(set(rep_neighborhood_graphs.keys()) & set(v_neigh)) if G.nodes[u]["cluster"] != "unclassified"]
+
+    if len(classified) == 0:
+        return 0.0
+    
+    # gkf.GraphkernelFunc.k_func_wl(nx_to_grakel_graph(set(G.neighbors(u)) | {u}), neigh_subgraph, 1) 
+    same = sum(gkf.GraphkernelFunc.k_func_wl(rep_neighborhood_graphs[u], v_neigh_subgraph, 1) for u in classified 
                if G.nodes[u]["cluster"] == G.nodes[v]["cluster"])
     return same / len(classified)
 
@@ -73,6 +89,8 @@ profiler = cProfile.Profile()
 profiler.enable()
 # start = time.time()
 nodeID_dict = []
+new_neighborhood_graphs = {}
+rep_neighborhood_graphs = {}
 representative_graphs = {}
 clusterID = 0
 sigma = 0.8
@@ -93,6 +111,13 @@ while True:
         nodeID_dict.append(node)
         subgraph_nodes = set(G.neighbors(node)) | {node}
         representative_graphs[node] = nx_to_grakel_graph(subgraph_nodes)
+
+        for neighborhood in subgraph_nodes:
+                neighbor_subgraph_nodes = set(G.neighbors(neighborhood)) | {neighborhood}
+                if len(neighbor_subgraph_nodes) == 1:
+                    continue
+                neighbor_subgraph = nx_to_grakel_graph(neighbor_subgraph_nodes)
+                rep_neighborhood_graphs[neighborhood] = neighbor_subgraph
 
         G.nodes[node]["cluster"] = clusterID
     else:
@@ -127,14 +152,16 @@ while True:
             G.nodes[node]["cluster"] = clusterID
 
             for neighborhood in subgraph_nodes:
-                if G.nodes[neighborhood]["cluster"] != "unclassified":
-                    continue
-                
                 neighbor_subgraph_nodes = set(G.neighbors(neighborhood)) | {neighborhood}
                 if len(neighbor_subgraph_nodes) == 1:
                     continue
                 neighbor_subgraph = nx_to_grakel_graph(neighbor_subgraph_nodes)
+                
+                rep_neighborhood_graphs[neighborhood] = neighbor_subgraph
+                if G.nodes[neighborhood]["cluster"] != "unclassified":
+                    continue
 
+                new_neighborhood_graphs[neighborhood] = neighbor_subgraph
                 coh = gkf.GraphkernelFunc.k_func_wl(neighbor_subgraph, subgraph, 1)
                 # coh = gkf.GraphkernelFunc.k_func_vh(neighbor_subgraph, subgraph)
                     
@@ -152,17 +179,24 @@ while True:
                 if len(neighbor_subgraph_nodes) == 1:
                     continue
                 neighbor_subgraph = nx_to_grakel_graph(neighbor_subgraph_nodes)
+                new_neighborhood_graphs[neighborhood] = neighbor_subgraph
 
                 coh = gkf.GraphkernelFunc.k_func_wl(neighbor_subgraph, subgraph, 1)
                 # coh = gkf.GraphkernelFunc.k_func_vh(neighbor_subgraph, subgraph)
                     
                 if(coh >= sigma):
                     G.nodes[neighborhood]["cluster"] = G.nodes[node]["cluster"]
-            
-            if (core_score(node) > core_score(u)) :
+
+            if (new_core_score(node) > rep_core_score(u)) :
                 nodeID_dict[best_idx] = node
                 representative_graphs.pop(u)
                 representative_graphs[node] = nx_to_grakel_graph(subgraph_nodes)
+
+                for neighborhood in subgraph_nodes:
+                    if neighborhood in new_neighborhood_graphs:
+                        rep_neighborhood_graphs[neighborhood] = new_neighborhood_graphs[neighborhood]
+
+        new_neighborhood_graphs = {}
         
 # end = time.time()
 # print(end - start)
