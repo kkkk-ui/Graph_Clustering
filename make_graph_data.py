@@ -4,25 +4,30 @@ import matplotlib.pyplot as plt
 import pandas as pd 
 
 # グラフのパラメータ設定
-N = 1000 # ノード数
-k = 8   # クラスター数
+N = 300 # ノード数
+k = 3   # クラスター数
 
 # クラスターごとのノード数 (合計200になるように分割)
-sizes = [120, 140, 120, 100, 120, 120, 180, 100]
+# sizes = [120, 140, 120, 100, 120, 120, 180, 100]
+sizes = [120, 80, 100]
 
 # クラスター間の接続確率行列 P
 # 対角要素 (クラスター内): 0.8 (密)
 # 非対角要素 (クラスター間): 0.01 (疎)
 p_in = 0.8
 p_out = 0.01
-probs = [[p_in, p_out, p_out, p_out, p_out, p_out, p_out, p_out],
-         [p_out, p_in, p_out, p_out, p_out, p_out, p_out, p_out],
-         [p_out, p_out, p_in, p_out, p_out, p_out, p_out, p_out],
-         [p_out, p_out, p_out, p_in, p_out, p_out, p_out, p_out],
-         [p_out, p_out, p_out, p_out, p_in, p_out, p_out, p_out],
-         [p_out, p_out, p_out, p_out, p_out, p_in, p_out, p_out],
-         [p_out, p_out, p_out, p_out, p_out, p_out, p_in, p_out],
-         [p_out, p_out, p_out, p_out, p_out, p_out, p_out, p_in]]
+# probs = [[p_in, p_out, p_out, p_out, p_out, p_out, p_out, p_out],
+#          [p_out, p_in, p_out, p_out, p_out, p_out, p_out, p_out],
+#          [p_out, p_out, p_in, p_out, p_out, p_out, p_out, p_out],
+#          [p_out, p_out, p_out, p_in, p_out, p_out, p_out, p_out],
+#          [p_out, p_out, p_out, p_out, p_in, p_out, p_out, p_out],
+#          [p_out, p_out, p_out, p_out, p_out, p_in, p_out, p_out],
+#          [p_out, p_out, p_out, p_out, p_out, p_out, p_in, p_out],
+#          [p_out, p_out, p_out, p_out, p_out, p_out, p_out, p_in]]
+
+probs = [[p_in, p_out, p_out],
+        [p_out, p_in, p_out],
+        [p_out, p_out, p_in]]
 
 # グラフの生成
 G = nx.stochastic_block_model(sizes, probs, seed=42)
@@ -35,7 +40,8 @@ for i, size in enumerate(sizes):
     cluster_map.extend([i] * size)
 
 # 描画用のカラーマップ
-color_map = {0: 'red', 1: 'red', 2: 'red', 3: 'red', 4: 'red', 5: 'red', 6: 'red', 7: 'red'}
+# color_map = {0: 'red', 1: 'red', 2: 'red', 3: 'red', 4: 'red', 5: 'red', 6: 'red', 7: 'red'}
+color_map = {0: 'red', 1: 'red', 2: 'red'}
 node_colors = [color_map[cluster_map[node]] for node in G.nodes()]
 
 # グラフの可視化
