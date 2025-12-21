@@ -83,30 +83,32 @@ for edge in zip(edge_df["Source"], edge_df["Target"]):
 # プロファイリングの実行
 profiler = cProfile.Profile()
 profiler.enable()
-# start = time.time()
+
 nodeID_dict = []
 new_neighborhood_graphs = {}
 rep_neighborhood_graphs = {}
 representative_graphs = {}
 clusterID = 0
 sigma = 0.8
+
 while True:
     print(nodeID_dict)
     unclassified_nodes = [n for n, data in G.nodes(data=True) if data.get("cluster") == "unclassified"]
 
-    if unclassified_nodes:
-        picked = np.random.choice(unclassified_nodes)
-        node = picked
-    else:
+    if not unclassified_nodes:
         break
 
+    node = np.random.choice(unclassified_nodes)
+    subgraph_nodes = set(G.neighbors(node)) | {node}
+
+    # 初回クラスタ作成
     if clusterID == 0:
         clusterID += 1
-
+        G.nodes[node]["cluster"] = clusterID
         nodeID_dict.append(node)
-        subgraph_nodes = set(G.neighbors(node)) | {node}
         representative_graphs[node] = nx_to_grakel_graph(subgraph_nodes)
-
+   
+        # 近傍の部分グラフキャッシュ
         for neighborhood in subgraph_nodes:
                 neighbor_subgraph_nodes = set(G.neighbors(neighborhood)) | {neighborhood}
                 if len(neighbor_subgraph_nodes) == 1:
@@ -114,53 +116,50 @@ while True:
                 neighbor_subgraph = nx_to_grakel_graph(neighbor_subgraph_nodes)
                 rep_neighborhood_graphs[neighborhood] = neighbor_subgraph
 
-        G.nodes[node]["cluster"] = clusterID
+    # クラスタ作成
     else:
-        subgraph_nodes = set(G.neighbors(node)) | {node}
         if len(subgraph_nodes) == 1:
             G.nodes[node]["cluster"] = "non-member"
             continue
         subgraph = nx_to_grakel_graph(subgraph_nodes)
 
-        coh_max = 0
-        u = None
-        best_idx = None
+        # 代表グラフ（既存クラスタ）との類似度確認
+        coh_max, u, best_idx = 0, None, None
         for idx, j in enumerate(nodeID_dict):
             coh = gkf.GraphkernelFunc.k_func_wl(subgraph, representative_graphs[j],  1)
             # coh = gkf.GraphkernelFunc.k_func_vh(subgraph, representative)
             if(coh > coh_max):
-                coh_max = coh
-                u = j
-                best_idx = idx
+                coh_max, u, best_idx = coh, j, idx
 
+        # 新規クラスタ
         if(coh_max < sigma):
             clusterID += 1
+            G.nodes[node]["cluster"] = clusterID
             nodeID_dict.append(node)
-
             representative_graphs[node] = nx_to_grakel_graph(subgraph_nodes)
 
-            G.nodes[node]["cluster"] = clusterID
-
+            # 近傍の部分グラフキャッシュ＆cohが閾値以上なら同クラスタ
             for neighborhood in subgraph_nodes:
                 neighbor_subgraph_nodes = set(G.neighbors(neighborhood)) | {neighborhood}
                 if len(neighbor_subgraph_nodes) == 1:
                     continue
                 neighbor_subgraph = nx_to_grakel_graph(neighbor_subgraph_nodes)
-                
                 rep_neighborhood_graphs[neighborhood] = neighbor_subgraph
+
                 if G.nodes[neighborhood]["cluster"] != "unclassified":
                     continue
-
                 new_neighborhood_graphs[neighborhood] = neighbor_subgraph
+
                 coh = gkf.GraphkernelFunc.k_func_wl(neighbor_subgraph, subgraph, 1)
-                # coh = gkf.GraphkernelFunc.k_func_vh(neighbor_subgraph, subgraph)
-                    
+                # coh = gkf.GraphkernelFunc.k_func_vh(neighbor_subgraph, subgraph)              
                 if(coh >= sigma):
                     G.nodes[neighborhood]["cluster"] = G.nodes[node]["cluster"]
 
+        # 既存クラスタ
         elif(coh_max >= sigma):
             G.nodes[node]["cluster"] = G.nodes[u]["cluster"]
 
+            # 近傍の部分グラフキャッシュ＆cohが閾値以上なら同クラスタ
             for neighborhood in subgraph_nodes:
                 if G.nodes[neighborhood]["cluster"] != "unclassified":
                     continue
@@ -173,15 +172,16 @@ while True:
 
                 coh = gkf.GraphkernelFunc.k_func_wl(neighbor_subgraph, subgraph, 1)
                 # coh = gkf.GraphkernelFunc.k_func_vh(neighbor_subgraph, subgraph)
-                    
                 if(coh >= sigma):
                     G.nodes[neighborhood]["cluster"] = G.nodes[node]["cluster"]
 
+            # コアスコアによる代表ノード入れ替え判定
             if (new_core_score(node) > rep_core_score(u)) :
                 nodeID_dict[best_idx] = node
                 representative_graphs.pop(u)
                 representative_graphs[node] = nx_to_grakel_graph(subgraph_nodes)
 
+                # 代表ノード近傍グラフキャッシュ更新
                 for neighborhood in subgraph_nodes:
                     if neighborhood in new_neighborhood_graphs:
                         rep_neighborhood_graphs[neighborhood] = new_neighborhood_graphs[neighborhood]
