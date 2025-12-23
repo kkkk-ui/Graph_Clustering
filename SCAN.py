@@ -28,7 +28,7 @@ neighbors = {
 }
 
 EPS = 0.8
-MU = 5
+MU = 3
 
 e_neighbors = {}
 
@@ -141,6 +141,10 @@ for node in non_member_nodes:
 end = time.time()
 print(end - start)
 # ================================================================================
+
+
+# ================================================================================
+# 可視化
 print(len(G.edges))
 all_labels = [attr.get("cluster") for _, attr in G.nodes.data() if "cluster" in attr]
 unique_labels = list(set(all_labels))
@@ -161,9 +165,9 @@ for node in G.nodes():
 
 plt.figure(figsize=(10, 10))
 
-pos = nx.kamada_kawai_layout(G)
+pos = nx.spring_layout(G)
 
-nx.draw_networkx_nodes(G, pos, node_size=200, node_color=node_colors, alpha=0.8) 
+nx.draw_networkx_nodes(G, pos, node_size=50, node_color=node_colors, alpha=0.8) 
 nx.draw_networkx_edges(G, pos, edge_color='gray', alpha=0.1)
 
 legend_handles = []
@@ -184,3 +188,4 @@ for label in unique_labels:
 plt.legend(handles=legend_handles, loc='upper left', title="Node Labels")
 plt.axis('off') 
 plt.show()
+# ================================================================================
