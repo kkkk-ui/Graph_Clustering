@@ -29,9 +29,9 @@ def new_core_score(v):
     if len(classified) == 0:
         return 0.0
     
-    same = sum(gkf.GraphkernelFunc.k_func_wl(new_neighborhood_graphs[u], v_neigh_subgraph, 1) for u in classified 
-               if G.nodes[u]["cluster"] == G.nodes[v]["cluster"])
-    return same / len(classified)
+    same = sum(1 for u in classified 
+               if gkf.GraphkernelFunc.k_func_wl(new_neighborhood_graphs[u], v_neigh_subgraph, 1) > sigma)
+    return same 
 
 def rep_core_score(v):
     v_neigh = set(G.neighbors(v)) | {v}
